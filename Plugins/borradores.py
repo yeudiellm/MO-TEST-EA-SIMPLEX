@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd 
 from tqdm import tqdm
 from sklearn.preprocessing import MinMaxScaler
-
+from pymoo.indicators.hv import HV
 class Evaluator_Solutions: 
     def __init__(self, Mega_X: np.ndarray, Mega_F: np.ndarray):
         self.n_ejec, self.n_gen, self.n_pop_size, self.n_var = Mega_X.shape
@@ -47,3 +47,19 @@ class Evaluator_Solutions:
         result = pd.DataFrame(result)
         result.to_csv(name_file+'.csv', index=False)
         return result   
+    
+    
+################PLOTTING 3D 
+#F_opt, X_opt = get_best_opt(F[19,249], X[19,249])
+#print(X_opt.shape)
+#import plotly.graph_objects as go
+#fig = go.Figure()
+# Add traces
+#fig.add_trace(go.Scatter3d(x=F[0,0][:,0], y=F[0,0][:,1], z=F[0,0][:,2], 
+#                           mode='markers', 
+#                           name='Poblacion'))
+#fig.add_trace(go.Scatter3d(x=F_opt[:, 0], y= F_opt[:, 1] , z= F_opt[:,2], 
+#                           mode='markers',
+#                           name='Óptimos'))
+
+#fig.show()
