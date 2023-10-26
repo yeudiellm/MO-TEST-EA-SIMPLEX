@@ -24,8 +24,7 @@ class Evaluator_Solutions:
             X_opt = None
             for j in range(self.n_gen): 
                 self.Mega_HV[i,j] = ind(scaler.transform(self.Mega_F[i,j]))
-                #F_opt, X_opt =get_best_opt(self.Mega_F[i,j], self.Mega_X[i,j], F_opt, X_opt, tol)
-                #F_opt, A_opt      = get_best_opt(self.Mega_F[i,j]  )
+                F_opt, X_opt =get_best_opt(self.Mega_F[i,j], self.Mega_X[i,j], F_opt, X_opt, tol)
                 self.Mega_HV_Opt[i,j] = ind(scaler.transform(F_opt))
         return 
     

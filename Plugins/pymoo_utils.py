@@ -6,6 +6,18 @@ from pymoo.problems import get_problem
 
 import numpy as np 
 import pandas as pd
+####################################################################################################
+#Pymoo problems modifications
+from pymoo.problems.multi import ZDT4
+import pymoo.gradient.toolbox as anp
+class ZDT4_BIS(ZDT4):
+  def __init__(self, n_var=10):
+    super().__init__(n_var)
+    self.xl = 0 * np.ones(self.n_var)
+    self.xl[0] = 0.0
+    self.xu = 1 * np.ones(self.n_var)
+    self.xu[0] = 1.0
+    self.func = self._evaluate
 
 ################################################################################################
 #Utility Functions for population
@@ -16,15 +28,29 @@ def get_full_population(res):
     X = all_pop.get('X')
     F = all_pop.get('F')
     return X, F 
-  
+
+def get_problem_bis(name, *args, **kwargs):
+    name = name.lower()
+    if name.startswith("zdt"): 
+        if name=="zdt4": 
+            return ZDT4_BIS()
+        else: 
+            return get_problem(name)
+    else: 
+        return get_problem(name, *args, **kwargs)
+#Utility Functions for algorithm of interes  
 def get_algorithm(name, *args, **kwargs): 
     name = name.lower()
     from pymoo.algorithms.moo.nsga2 import NSGA2
+    from pymoo.algorithms.moo.nsga3 import NSGA3
+    from pymoo.algorithms.moo.moead import MOEAD
     from pymoo.algorithms.moo.sms import SMSEMOA
     from pymoo.algorithms.moo.age import AGEMOEA
     ALGORITHM = {'nsgaii': NSGA2, 
-               'sms-emoa': SMSEMOA, 
-               'age-moea': AGEMOEA, 
+                 'nsgaiii': NSGA3,
+               'sms_emoa': SMSEMOA, 
+               'age_moea': AGEMOEA, 
+               'moead': MOEAD
                }
     if name not in ALGORITHM:
         raise Exception("Algorithm not found.")
@@ -35,20 +61,19 @@ def get_algorithm(name, *args, **kwargs):
 #SOLUTIONS GENERATOR FOR SEVERAL PROBLEMS 
 class Generator_Solutions: 
     def __init__(self, n_ejec, n_gen, name_problem, name_algorithm, kwargs_problem, kwargs_algorithm): 
+        #EJECUTIONS AND GENERATIONS
         self.n_ejec = n_ejec 
         self.n_gen  = n_gen 
-        self.n_obj = kwargs_problem['n_obj']
-        self.n_var = kwargs_problem['n_var']
-        self.n_pop_size = kwargs_algorithm['pop_size']
         #PYMOO PROBLEM 
         self.name_problem = name_problem
-        try: 
-            self.problem = get_problem(name_problem, **kwargs_problem)
-        except: 
-            self.problem = get_problem(name_problem)
-        #PYMOO ALGORITHM  
+        self.problem = get_problem_bis(name_problem, **kwargs_problem)
+        #PYMOO ALGORITHM 
         self.name_algorithm = name_algorithm 
         self.algorithm = get_algorithm(name_algorithm, **kwargs_algorithm)
+        #PYMOO VARIABLES 
+        self.n_obj = self.problem.n_obj
+        self.n_var = self.problem.n_var
+        self.n_pop_size = self.algorithm.pop_size
         #Terminations Criterio 
         self.termination = get_termination("n_gen", n_gen)
         #(n_ejec, n_gen, n_pop_size, n_var)
@@ -77,4 +102,14 @@ def get_solutions(problems, vars, objs, n_ejec, n_gen, name_algorithm, kwargs_al
                                    {'n_var': vars[i], 'n_obj': objs[i]}, 
                                    kwargs_algorithm)
         sols.get_extensive_population(save=True, name_files='Solutions/'+name_algorithm+'/'+name_problem+'_'+name_oprt)
+    return
+
+#SEARCHING FAKE
+def get_solutions_fake(problems, vars, objs, n_ejec, n_gen, name_algorithm, kwargs_algorithm, name_oprt=''): 
+    for i, name_problem in enumerate(problems): 
+        print(name_problem)
+        sols = Generator_Solutions(n_ejec, n_gen, name_problem, name_algorithm, 
+                                   {'n_var': vars[i], 'n_obj': objs[i]}, 
+                                   kwargs_algorithm)
+        sols.get_extensive_population(save=False, name_files='Solutions/'+name_algorithm+'/'+name_problem+'_'+name_oprt)
     return

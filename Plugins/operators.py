@@ -6,6 +6,7 @@ from pymoo.core.crossover import Crossover
 from pymoo.util.ref_dirs import get_reference_directions
 from pymoo.operators.repair.bounds_repair import repair_random_init
 from pymoo.core.variable import Real, get
+from sklearn.cluster import KMeans
 #Operadores de interés 
 class Simplex_Repair(Repair):
     def _do(self, problem, X, **kwargs): 
@@ -40,13 +41,35 @@ class Sampling_Uniform(Sampling):
         X = np.empty((n_samples, n_vars))
         for i in range(n_samples):
             X[i] = self.uniform_sampling_simplex(n_vars)
+        return X
+class Sampling_RED_D(Sampling):
+    def _do(self, problem, n_samples, **kwargs):
+        #100 individuos (a lo más 2000)
+        #problem.n_var la cantidad de activos. 
+        X = get_reference_directions("das-dennis", n_dim=problem.n_var, n_partitions=5)
+        kmeans = KMeans(n_clusters=n_samples, random_state=0, n_init="auto").fit(X)
+        X = kmeans.cluster_centers_
         return X  
+class Sampling_MSS_D(Sampling):
+    def _do(self, problem, n_samples, **kwargs):
+        #100 individuos (a lo más 2000)
+        #problem.n_var la cantidad de activos. 
+        S= get_reference_directions("das-dennis", n_dim=problem.n_var, n_partitions=3)
+        S = S[~np.any(S==1,axis=1), :]
+        W= np.identity(problem.n_var) 
+        for i in range(n_samples -len(W)): 
+          dists =[ np.sum(np.linalg.norm(W-row, ord=2)) for row in S]
+          max_point = np.argmax(dists)
+          W     = np.vstack([W,S[max_point, :]])
+          S     = np.delete(S, max_point, 0)
+        return W 
+     
     
 #Crossovers 
 class SPX(Crossover):
     def __init__(self,
-                n_offsprings=3,
                 n_parents   =3,
+                n_offsprings=3,
                 epsilon = 0.001,
                 **kwargs):
       super().__init__(n_parents, n_offsprings, **kwargs)
@@ -60,6 +83,7 @@ class SPX(Crossover):
           parents = X[:, k, :]
           O = np.mean(parents, axis=0)
           yks = [O + (1+self.epsilon) * (p - O) for p in parents]  
+          
           for i in range(self.n_offsprings):   
             Y[i, k, :] = self.get_offspring(yks) 
             #print(Y[i,k,:])
@@ -82,7 +106,7 @@ def mut_dirichlet(X, xl, xu, prob):
     mut = np.random.rand(n) < prob
     if np.sum(mut)>0:
       #print(X[mut])
-      Xp[mut] = np.apply_along_axis( lambda alphas: np.random.dirichlet(alphas), 1, X[mut]+0.01)
+      Xp[mut] = np.array([np.random.dirichlet(alphas+0.01) for alphas in X[mut]])
     Xp = repair_random_init(Xp, X, xl, xu)
     return Xp
 
