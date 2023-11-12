@@ -8,12 +8,16 @@ from pymoo.operators.repair.bounds_repair import repair_random_init
 from pymoo.core.variable import Real, get
 from sklearn.cluster import KMeans
 #Operadores de interés 
+
+##########################################################################################################################################
+#BASELINE ################################################################################################################################
 class Simplex_Repair(Repair):
     def _do(self, problem, X, **kwargs): 
         X[X < 1e-5] = 0
         return X / X.sum(axis=1, keepdims=True)
-    
-#Sampling 
+
+##########################################################################################################################################    
+#Sampling ################################################################################################################################
 class Sampling_Energy(Sampling):
     def _do(self, problem, n_samples, **kwargs):
         #100 individuos (a lo más 2000)
@@ -25,7 +29,6 @@ class Sampling_Uniform(Sampling):
     def _do(self, problem, n_samples, **kwargs): 
         X = self.n_uniform_sampling_simplex(problem.n_var, n_samples)
         return X
-    
     def uniform_sampling_simplex(self, n_vars):
         sum = 0
         x = np.zeros(n_vars)
@@ -36,7 +39,6 @@ class Sampling_Uniform(Sampling):
             sum= sum+x[i]
         x[-1]= 1-sum
         return x
-
     def n_uniform_sampling_simplex(self, n_vars, n_samples):
         X = np.empty((n_samples, n_vars))
         for i in range(n_samples):
@@ -63,7 +65,76 @@ class Sampling_MSS_D(Sampling):
           W     = np.vstack([W,S[max_point, :]])
           S     = np.delete(S, max_point, 0)
         return W 
-     
+
+##########################################################################################################################################    
+#Mutations ################################################################################################################################  
+def mut_dirichlet(X, xl, xu, prob):
+    n, n_var = X.shape
+    assert len(prob) == n
+    Xp = X[:]
+    mut = np.random.rand(n) < prob
+    if np.sum(mut)>0:
+      #print(X[mut])
+      Xp[mut] = np.array([np.random.dirichlet(alphas+0.01) for alphas in X[mut]])
+    Xp = repair_random_init(Xp, X, xl, xu)
+    return Xp
+
+def mut_lognormal_transform(X, xl, xu, prob): 
+    n, n_var = X.shape
+    assert len(prob) == n
+    Xp = X[:]
+    mut = np.random.rand(n) < prob
+    if np.sum(mut)>0:
+      new_samples = []
+      for alphas in X[mut]: 
+          z = np.random.lognormal(alphas)
+          z = z/np.sum(z)
+          new_samples.append( z/np.sum(z))
+      Xp[mut] = new_samples
+    Xp = repair_random_init(Xp, X, xl, xu)
+    return Xp
+
+def mut_exponential_transform(X, xl, xu, prob): 
+    n, n_var = X.shape
+    assert len(prob) == n
+    Xp = X[:]
+    mut = np.random.rand(n) < prob
+    if np.sum(mut)>0:
+      new_samples = []
+      for alphas in X[mut]: 
+          z = np.random.exponential(alphas)
+          z = z/np.sum(z)
+          new_samples.append( z/np.sum(z))
+      Xp[mut] = new_samples
+    Xp = repair_random_init(Xp, X, xl, xu)
+    return Xp
+
+def mut_normal_transform(X, xl, xu, prob): 
+    n, n_var = X.shape
+    assert len(prob) == n
+    Xp = X[:]
+    mut = np.random.rand(n) < prob
+    if np.sum(mut)>0:
+      new_samples = []
+      for alphas in X[mut]: 
+          z = np.random.normal(alphas)
+          z = np.exp(z)/np.sum(np.exp(z))
+          new_samples.append( z/np.sum(z))
+      Xp[mut] = new_samples
+    Xp = repair_random_init(Xp, X, xl, xu)
+    return Xp
+
+
+class Probability_Mutation(Mutation):
+    def __init__(self, distribution_fun,  **kwargs):
+        self.distribution_fun = distribution_fun
+        super().__init__(**kwargs)
+
+    def _do(self, problem, X, **kwargs):
+        X = X.astype(float)
+        prob_var = self.get_prob_var(problem, size=len(X))
+        Xp = self.distribution_fun(X, problem.xl, problem.xu, prob_var)
+        return Xp    
     
 #Crossovers 
 class SPX(Crossover):
@@ -97,26 +168,3 @@ class SPX(Crossover):
         for k in range(1, self.n_parents):
             ck = rs[k-1]*(yks[k-1] - yks[k]+ ck) 
         return yks[-1] + ck    
-
-#Mutation   
-def mut_dirichlet(X, xl, xu, prob):
-    n, n_var = X.shape
-    assert len(prob) == n
-    Xp = X[:]
-    mut = np.random.rand(n) < prob
-    if np.sum(mut)>0:
-      #print(X[mut])
-      Xp[mut] = np.array([np.random.dirichlet(alphas+0.01) for alphas in X[mut]])
-    Xp = repair_random_init(Xp, X, xl, xu)
-    return Xp
-
-class Probability_Mutation(Mutation):
-    def __init__(self, distribution_fun,  **kwargs):
-        self.distribution_fun = distribution_fun
-        super().__init__(**kwargs)
-
-    def _do(self, problem, X, **kwargs):
-        X = X.astype(float)
-        prob_var = self.get_prob_var(problem, size=len(X))
-        Xp = self.distribution_fun(X, problem.xl, problem.xu, prob_var)
-        return Xp

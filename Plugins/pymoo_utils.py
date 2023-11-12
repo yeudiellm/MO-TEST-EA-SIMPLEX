@@ -28,7 +28,7 @@ def get_full_population(res):
     X = all_pop.get('X')
     F = all_pop.get('F')
     return X, F 
-
+#Utility Functions for problem
 def get_problem_bis(name, *args, **kwargs):
     name = name.lower()
     if name.startswith("zdt"): 
@@ -38,7 +38,7 @@ def get_problem_bis(name, *args, **kwargs):
             return get_problem(name)
     else: 
         return get_problem(name, *args, **kwargs)
-#Utility Functions for algorithm of interes  
+#Utility Functions for algorithm of interest  
 def get_algorithm(name, *args, **kwargs): 
     name = name.lower()
     from pymoo.algorithms.moo.nsga2 import NSGA2
