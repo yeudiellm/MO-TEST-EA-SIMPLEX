@@ -6,10 +6,11 @@ from pymoo.problems import get_problem
 
 import numpy as np 
 import pandas as pd
-####################################################################################################
-#Pymoo problems modifications
 from pymoo.problems.multi import ZDT4
 import pymoo.gradient.toolbox as anp
+####################################################################################################
+#Pymoo problems modifications
+
 class ZDT4_BIS(ZDT4):
   def __init__(self, n_var=10):
     super().__init__(n_var)
@@ -28,6 +29,7 @@ def get_full_population(res):
     X = all_pop.get('X')
     F = all_pop.get('F')
     return X, F 
+
 #Utility Functions for problem
 def get_problem_bis(name, *args, **kwargs):
     name = name.lower()
@@ -87,7 +89,7 @@ class Generator_Solutions:
                            algorithm = self.algorithm,
                            termination = self.termination, 
                            save_history=True)
-            for j, algo in enumerate(res.history): 
+            for j, algo in enumerate(res.history): #https://pymoo.org/getting_started/part_4.html?highlight=history
                 self.Mega_X[i, j] = algo.off.get('X')
                 self.Mega_F[i, j] = algo.off.get('F')
         if save: 
